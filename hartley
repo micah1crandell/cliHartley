@@ -1,7 +1,5 @@
 #!/bin/bash
 
-OPENAI_API_KEY="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"
-
 get_input() {
   if [ -n "$ZSH_VERSION" ]; then
     # Is zsh
