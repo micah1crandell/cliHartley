@@ -26,8 +26,8 @@ if ! command -v jq >/dev/null; then
   return 1
 fi
 
-if [ -z "$OPENAI_API_KEY" ]; then
-  echo "Error: OPENAI_API_KEY is not set. Please set your API key and try again."
+if [ -z "$GEMINI_API_KEY" ]; then
+  echo "Error: GEMINI_API_KEY is not set. Please set your API key and try again."
   return 1
 fi
 
