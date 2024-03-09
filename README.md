@@ -1,4 +1,4 @@
-terminal ai command assistant based on https://github.com/Luanf/cligpt
+AI assistant for terminal commands based on https://github.com/Luanf/cligpt
 
 Goals:
 autocomplete
