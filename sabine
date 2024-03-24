@@ -47,7 +47,6 @@ display_help() {
   echo "  h <help>   : Display this help message"
 }
 
-# Check if jq and gemini api key are available
 if ! command -v jq >/dev/null; then
   echo "Error: jq is not installed. Please install jq and try again."
   exit 1
@@ -58,13 +57,11 @@ if [ -z "$GEMINI_API_KEY" ]; then
   exit 1
 fi
 
-# Set a flag to track if 'c' command was used
 RUN_COMMAND=false
 
-# Determine the command to execute
 case "$1" in
   "c")
-    RUN_COMMAND=true # Set the flag to true since 'c' command was used
+    RUN_COMMAND=true 
     shift
     RESPONSE=$(generate_command "$@")
     ;;
@@ -87,7 +84,7 @@ ERROR_MESSAGE=$(printf "%s" "$RESPONSE" | jq -r '(.error.message // "") | @json'
 COMMAND=$(printf "%s" "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text')
 
 if [ -n "$ERROR_MESSAGE" ]; then
-  if [ "$1" != "h" ]; then  # Skip error message output for 'h' command
+  if [ "$1" != "h" ]; then 
     echo "Error: $ERROR_MESSAGE"
   fi
 elif [[ "$COMMAND" =~ "FAILED_TO_GENERATE_COMMAND" || "$COMMAND" =~ "parse error:" ]]; then
@@ -107,7 +104,7 @@ elif [ -n "$COMMAND" ]; then
     echo ""
   fi
 else
-  if [ "$1" != "h" ]; then  # Skip error message output for 'h' command
+  if [ "$1" != "h" ]; then 
     echo "Error: Unexpected response."
     echo "Output: $COMMAND"
   fi
