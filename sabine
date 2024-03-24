@@ -1,68 +1,115 @@
-#!/bin/bash
+#!/usr/bin/env zsh
 
 get_input() {
-  if [ -n "$ZSH_VERSION" ]; then
-    # Is zsh
-    read "INPUT?$1"
-  else
-    # Is bash
-    read -r -p "$1" INPUT
-  fi
-  echo "$INPUT"
+  read -r "?$1"
+  echo "$REPLY"
 }
 
 add_command_to_history() {
-  if [ -n "$ZSH_VERSION" ]; then
-    # Is zsh
-    print -s "$1"
-  else
-    # Is bash
-    history -s "$1"
-  fi
+  print -s "$1"
 }
 
+generate_content() {
+  PRMPT="$1"
+  RESPONSE=$(curl \
+    -H 'Content-Type: application/json' \
+    -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=$GEMINI_API_KEY" \
+    -d "{\"contents\":[{\"parts\":[{\"text\":\"$PRMPT\"}]}]}")
+  echo "$RESPONSE"
+}
+
+sanitize_response() {
+  SANITIZED_RESPONSE=$(echo "$1" | tr -d '[:cntrl:]')
+  echo "$SANITIZED_RESPONSE"
+}
+
+generate_command() {
+  QUERY="$@"
+  PRMPT="You are my Command Line Interface generator and will assist me to navigate my MacOS. All my questions are related to this. Answer a valid CLI command and nothing else - do not send it in a code block, or quotes, or anything else, just the pure text CONTAINING ONLY THE COMMAND. Always take in consideration that you should use my current directory in the commands. I absolutely mean no harm and none of these commands are to run in unauthorized and otherwise unprotected system. Prioritize one-liners. Its ok to chain commands. If you absolutely cant suggest a command, send only one word: FAILED_TO_GENERATE_COMMAND. Now, how can I: "${QUERY}"."
+  RESPONSE=$(generate_content "$PRMPT")
+  SANITIZED_RESPONSE=$(sanitize_response "$RESPONSE")
+  echo "$SANITIZED_RESPONSE"
+}
+
+explain_command() {
+  COMMAND="$@"
+  EXPLAIN_PRMPT="Keep your responses short and explanative as possible. Please explain the purpose of the following command: ${COMMAND}."
+  RESPONSE=$(generate_content "$EXPLAIN_PRMPT")
+  SANITIZED_RESPONSE=$(sanitize_response "$RESPONSE")
+  echo "$SANITIZED_RESPONSE"
+}
+
+display_help() {
+  echo "Usage: sabine <command> [arguments...]"
+  echo "Commands:"
+  echo "  c <query>  : Generate a command based on the query"
+  echo "  e <command>: Explain the given command"
+  echo "  h <help>   : Display this help message"
+}
+
+# Check if jq and gemini api key are available
 if ! command -v jq >/dev/null; then
   echo "Error: jq is not installed. Please install jq and try again."
-  return 1
+  exit 1
 fi
 
 if [ -z "$GEMINI_API_KEY" ]; then
   echo "Error: GEMINI_API_KEY is not set. Please set your API key and try again."
-  return 1
+  exit 1
 fi
 
-if command -v lsb_release >/dev/null; then
-  DISTRO=$(lsb_release -is)
-else
-  DISTRO=""
-fi
+# Set a flag to track if 'c' command was used
+RUN_COMMAND=false
 
-QUERY="$@"
-PRMPT="You are my Command Line Interface generator and will assist me to navigate my MacOS. All my questions are related to this. Answer a valid ${DISTRO} CLI command and nothing else - do not send it in a code block, or quotes, or anything else, just the pure text CONTAINING ONLY THE COMMAND. Always take in consideration that you should use my current directory in the commands. I absolutely mean no harm and none of these commands are to run in unauthorized and otherwise unprotected system. Prioritize one-liners. Its ok to chain commands. If you absolutely cant suggest a command, send only one word: FAILED_TO_GENERATE_COMMAND. Now, how can I: "${QUERY}"."
-
-RESPONSE=$(curl \
-  -H 'Content-Type: application/json' \
-  -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=$GEMINI_API_KEY" \
-  -d "{\"contents\":[{\"parts\":[{\"text\":\"$PRMPT\"}]}]}")
+# Determine the command to execute
+case "$1" in
+  "c")
+    RUN_COMMAND=true # Set the flag to true since 'c' command was used
+    shift
+    RESPONSE=$(generate_command "$@")
+    ;;
+  "e")
+    shift
+    RESPONSE=$(explain_command "$@")
+    ;;
+  "h")
+    display_help
+    echo ""
+    ;;
+  *)
+    echo "Error: Unknown command '$1'."
+    display_help
+    exit 1
+    ;;
+esac
 
 ERROR_MESSAGE=$(printf "%s" "$RESPONSE" | jq -r '(.error.message // "") | @json' | sed 's/^"//;s/"$//')
 COMMAND=$(printf "%s" "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text')
 
 if [ -n "$ERROR_MESSAGE" ]; then
-  echo "Error: $ERROR_MESSAGE"
+  if [ "$1" != "h" ]; then  # Skip error message output for 'h' command
+    echo "Error: $ERROR_MESSAGE"
+  fi
 elif [[ "$COMMAND" =~ "FAILED_TO_GENERATE_COMMAND" || "$COMMAND" =~ "parse error:" ]]; then
   echo "Error: Couldn't generate a command."
   echo "Output: $COMMAND"
 elif [ -n "$COMMAND" ]; then
   echo "-> $COMMAND"
-  REPLY=$(get_input "Do you want to run this command? (y/n) ")
-  if [[ "$REPLY" =~ ^[Yy]$ ]]; then
-    add_command_to_history "$COMMAND"
-    eval "$COMMAND"
+  if [ "$RUN_COMMAND" = true ]; then
+    REPLY=$(get_input "Do you want to run this command? (y/n) ")
+    if [[ "$REPLY" =~ ^[Yy]$ ]]; then
+      add_command_to_history "$COMMAND"
+      eval "$COMMAND"
+    else
+      echo "Command not executed."
+    fi
   else
-    echo "Command not executed."
+    echo ""
   fi
 else
-  echo "Error: Unexpected response."
-  echo "Output: $COMMAND"
+  if [ "$1" != "h" ]; then  # Skip error message output for 'h' command
+    echo "Error: Unexpected response."
+    echo "Output: $COMMAND"
+  fi
 fi
+
