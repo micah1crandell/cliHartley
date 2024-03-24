@@ -31,9 +31,9 @@ generate_command() {
   echo "$SANITIZED_RESPONSE"
 }
 
-explain_results() {
-  RESULTS="$@"
-  EXPLAIN_PRMPT="Please explain the results of the previous command:\n\n${RESULTS}\n"
+explain_command() {
+  COMMAND="$@"
+  EXPLAIN_PRMPT="Keep your responses short and explanative as possible. Please explain the purpose of the following command: ${COMMAND}."
   RESPONSE=$(generate_content "$EXPLAIN_PRMPT")
   SANITIZED_RESPONSE=$(sanitize_response "$RESPONSE")
   echo "$SANITIZED_RESPONSE"
@@ -43,7 +43,7 @@ display_help() {
   echo "Usage: sabine <command> [arguments...]"
   echo "Commands:"
   echo "  c <query>  : Generate a command based on the query"
-  echo "  e results  : Explain the results of the previous command"
+  echo "  e <command>: Explain the given command"
   echo "  h <help>   : Display this help message"
 }
 
@@ -67,14 +67,7 @@ case "$1" in
     ;;
   "e")
     shift
-    if [ "$1" = "results" ]; then
-      OUTPUT=$(fc -ln -1)
-      RESPONSE=$(explain_results "$OUTPUT")
-    else
-      echo "Error: 'e' command only supports 'results' argument."
-      display_help
-      exit 1
-    fi
+    RESPONSE=$(explain_command "$@")
     ;;
   "h")
     display_help
@@ -116,3 +109,4 @@ else
     echo "Output: $COMMAND"
   fi
 fi
+
