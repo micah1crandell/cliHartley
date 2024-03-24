@@ -43,6 +43,7 @@ display_help() {
   echo "Usage: sabine <command> [arguments...]"
   echo "Commands:"
   echo "  c <query>  : Generate a command based on the query"
+  echo "  e <command>: Explain the given command"
   echo "  e results  : Explain the results of the previous command"
   echo "  h <help>   : Display this help message"
 }
