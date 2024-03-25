@@ -31,9 +31,17 @@ generate_command() {
   echo "$SANITIZED_RESPONSE"
 }
 
+explain_command() {
+  COMMAND="$@"
+  PRMPT="Please explain the command: ${COMMAND} on MacOS."
+  RESPONSE=$(generate_content "$PRMPT")
+  SANITIZED_RESPONSE=$(sanitize_response "$RESPONSE")
+  echo "$SANITIZED_RESPONSE"
+}
+
 explain_results() {
   RESULTS="$@"
-  EXPLAIN_PRMPT="Please explain the results of the previous command:\n\n${RESULTS}\n"
+  EXPLAIN_PRMPT="Please explain the results of the previous command ran in MacOS terminal:\n\n${RESULTS}\n"
   RESPONSE=$(generate_content "$EXPLAIN_PRMPT")
   SANITIZED_RESPONSE=$(sanitize_response "$RESPONSE")
   echo "$SANITIZED_RESPONSE"
@@ -71,13 +79,15 @@ case "$1" in
     if [ "$1" = "results" ]; then
       OUTPUT=$(fc -ln -1)
       RESPONSE=$(explain_results "$OUTPUT")
-    else
-      echo "Error: 'e' command only supports 'results' argument."
+    elif [ -z "$1" ]; then
+      echo "Error: 'e' command requires an argument."
       display_help
       exit 1
+    else
+      RESPONSE=$(explain_command "$@")
     fi
     ;;
-  "h")
+  "h"|"help")
     display_help
     echo ""
     ;;
