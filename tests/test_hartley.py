@@ -138,11 +138,38 @@ class TestTools(unittest.TestCase):
     def test_interactive_command_detection(self):
         from hartley_agent.tools import is_interactive_command
         self.assertTrue(is_interactive_command("ssh user@server"))
+        self.assertTrue(is_interactive_command("ssh docker-mac"))
+        self.assertTrue(is_interactive_command("ssh -i key.pem user@server"))
         self.assertTrue(is_interactive_command("docker exec -it my_container bash"))
         self.assertTrue(is_interactive_command("screen /dev/tty0"))
         self.assertTrue(is_interactive_command("top"))
+        self.assertTrue(is_interactive_command("sudo htop"))
+        self.assertTrue(is_interactive_command("vi /etc/hosts"))
+        self.assertTrue(is_interactive_command("nano file.txt"))
+        # Non-interactive remote commands should be False (allowed)
+        self.assertFalse(is_interactive_command('ssh user@server "docker ps"'))
+        self.assertFalse(is_interactive_command('ssh docker-mac docker ps'))
+        self.assertFalse(is_interactive_command('ssh -p 22 docker-mac "docker logs immich"'))
         self.assertFalse(is_interactive_command("ls -la"))
         self.assertFalse(is_interactive_command("docker ps -a"))
+        self.assertFalse(is_interactive_command("grep ssh file.txt"))
+        self.assertFalse(is_interactive_command("cat nano.txt"))
+        self.assertFalse(is_interactive_command("top -l 1"))
+
+    def test_execute_bash_interactive_blocked(self):
+        # Default allow_interactive=False should return exit code 1 with guidance
+        result = execute_bash("ssh user@server")
+        self.assertEqual(result["exit_code"], 1)
+        self.assertIn("Interactive command blocked", result["stderr"])
+        self.assertIn("do not run bare 'ssh <host>'", result["stderr"])
+
+    @patch("os.system", return_value=0)
+    def test_execute_bash_allow_interactive(self, mock_os_system):
+        # When explicitly allowed, interactive commands run through os.system
+        result = execute_bash("ssh user@server", allow_interactive=True)
+        self.assertEqual(result["exit_code"], 0)
+        self.assertIn("interactive session completed in terminal", result["stdout"])
+        mock_os_system.assert_called_once()
 
 
 class TestConfig(unittest.TestCase):

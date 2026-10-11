@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from .agent import SYSTEM_PROMPT, TerminalAgent
-from .animations import ThinkingVisualizer, play_boot_sequence
+from .animations import ThinkingVisualizer, play_boot_sequence, play_startup_animation
 from .config import (
     get_config_dir,
     get_config_val,
@@ -67,7 +67,7 @@ def run_repl(agent: TerminalAgent, client: GeminiClient):
     """Start interactive chat session with live streaming, tools, window memory, and themes."""
     setup_readline()
     th = get_theme()
-    play_boot_sequence(th)
+    play_startup_animation(th)
 
     wm = WindowMemory()
     gm = GlobalMemory()

@@ -45,6 +45,7 @@ def print_help():
   hartley "<query>"           Shorthand command generation / conversation
   hartley run <goal>          Run autonomous multi-step task with tools
   hartley anim [on|off]       Toggle cinematic animations vs simple mode
+  hartley loop                Launch 30-second cinematic fire & matrix loop animation
   hartley showcase [name|all] Live cinematic tour of all themes & animations
   hartley theme [set <name>]  Browse theme gallery or switch visual theme
   hartley key [api-key]       View status or set your Gemini API key
@@ -117,6 +118,20 @@ def handle_anim_cmd(args: List[str]) -> int:
         return 0
 
     sub = args[0].lower()
+    if sub in ("startup", "boot"):
+        if len(args) > 1:
+            st = args[1].lower() in ("on", "true", "1", "enable")
+            set_config_val("startup_animation", st)
+            state = f"{GREEN}ENABLED (30s Fire & Cyber Loop on startup){RESET}" if st else f"{YELLOW}DISABLED{RESET}"
+            print(f"{GREEN}[OK] Startup animation {state}.{RESET}")
+            return 0
+        else:
+            cur = get_config_val("startup_animation", True)
+            state = f"{GREEN}ENABLED (Plays on startup){RESET}" if cur else f"{YELLOW}DISABLED{RESET}"
+            print(f"\nHartley Startup Animation: {state}")
+            print(f"Usage: hartley anim startup [on | off]\n")
+            return 0
+
     if sub in ("on", "true", "1", "enable"):
         set_config_val("animations", True)
         print(f"{GREEN}[OK] Animations enabled (Cinematic mode).{RESET}")
@@ -132,7 +147,7 @@ def handle_anim_cmd(args: List[str]) -> int:
         print(f"{GREEN}[OK] Animations {state}.{RESET}")
         return 0
     else:
-        print(f"{YELLOW}Usage: hartley anim [on | off | toggle]{RESET}")
+        print(f"{YELLOW}Usage: hartley anim [on | off | toggle | startup on/off]{RESET}")
         return 1
 
 
@@ -251,6 +266,17 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     if first in ("showcase", "demo", "tour", "preview"):
         return handle_showcase_cmd(argv[1:])
+
+    if first in ("loop", "fire", "cinema", "matrix"):
+        import os
+        import runpy
+        script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fire_loop.py")
+        if os.path.exists(script):
+            runpy.run_path(script, run_name="__main__")
+            return 0
+        else:
+            print("fire_loop.py not found.")
+            return 1
 
     if first in ("key", "auth", "apikey"):
         return handle_key_cmd(argv[1:])

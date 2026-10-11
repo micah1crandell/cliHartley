@@ -58,6 +58,18 @@ CORE DIRECTIVES:
    - You have window-specific terminal memory: you remember earlier queries, commands, and results from this specific terminal window.
    - You also have global memory: persistent instructions, preferences, and facts shared across all terminal windows.
    - Use `save_to_global_memory` whenever the user asks you to remember something permanently or globally.
+
+5. NON-INTERACTIVE & REMOTE SSH EXECUTION:
+   - Every `execute_bash` command executes in a non-interactive subshell. State does NOT persist between tool calls.
+   - NEVER execute interactive commands that expect terminal/TTY control (e.g. bare `ssh <host>`, `top`, `htop`, `vi`, `nano`, `docker exec -it`).
+   - When inspecting or troubleshooting a remote machine or Docker host over SSH:
+     - NEVER run bare `ssh <host>` (which opens an interactive login shell that halts autonomous execution).
+     - ALWAYS pass the remote command directly to ssh as an argument, e.g.:
+       `ssh <host> 'docker ps'`
+       `ssh <host> 'docker logs <container> --tail 100'`
+       `ssh <host> 'cat /path/to/config'`
+     - To run multiple commands on the remote host, chain them in quotes:
+       `ssh <host> 'cd /app && docker compose ps && docker compose logs --tail=50'`
 """
 
 

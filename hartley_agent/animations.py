@@ -129,9 +129,28 @@ class ThinkingVisualizer:
             sys.stdout.flush()
 
 
+def play_startup_animation(theme: Optional[Theme] = None) -> None:
+    """
+    Play the 30-second thermal & cyber cinematic sequence on Hartley startup.
+    Skipped if animations are disabled, non-interactive, or in automated tests.
+    """
+    th = theme or get_theme()
+    if not is_active() or "unittest" in sys.modules or os.environ.get("HARTLEY_TESTING"):
+        print(th.render_banner())
+        return
+
+    from .config import get_config_val
+    if get_config_val("startup_animation", True):
+        from .fire_engine import run_cinematic_animation
+        run_cinematic_animation(is_interactive_boot=True)
+        print(th.render_banner())
+    else:
+        play_boot_sequence(th)
+
+
 def play_boot_sequence(theme: Optional[Theme] = None, skippable: bool = True) -> None:
     """
-    Play a cinematic themed boot sequence on REPL startup (400-550ms).
+    Play a quick themed boot sequence on REPL startup (400-550ms).
     Skipped immediately if animations are disabled or non-interactive.
     """
     th = theme or get_theme()

@@ -14,6 +14,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "max_history_turns": 15,
     "theme": "modern",
     "animations": True,
+    "startup_animation": True,
     "api_key": "",
 }
 
